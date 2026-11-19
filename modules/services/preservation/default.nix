@@ -185,6 +185,27 @@ in
     ./options.nix
   ];
 
+  # read-only, for a host to order its own units after: preservation cannot know which units
+  # touch the paths it preserves, and whoever declared those paths does.
+  options.preservation.units = lib.mkOption {
+    type = lib.types.listOf lib.types.str;
+    readOnly = true;
+    default =
+      if cfg.enable && !config.boot.initrd.enable then
+        map (entry: entry.unit) (entriesFor "stage2")
+      else
+        [ ];
+    defaultText = lib.literalMD "the stage 2 units, one per `preserveAt` entry; empty with an initrd";
+    description = ''
+      The `providers.services` units which set up preserved state on a machine without an
+      initrd, one per {option}`preservation.preserveAt` entry. With an initrd the work is done in
+      stage 1, before any unit starts, and this is empty.
+
+      Nothing waits for these on its own: a unit which reads or writes preserved state names them
+      in its `requires`.
+    '';
+  };
+
   config = lib.mkIf (cfg.enable && entries != [ ]) {
     # Where the work happens depends on whether there is an initrd to do it in.
     #
