@@ -109,9 +109,11 @@ in
 
       description = "yarr daemon service";
 
-      # was `service/syslogd/ready`: syslogd is in the head tier, so reaching
-      # the multi-user tier is already after it.
-      requires = [ "basic" ];
+      # its state directory, which is a tmpfiles rule below, and the logger
+      requires = [
+        "tmpfiles-setup"
+      ]
+      ++ config.providers.services.lib.present [ "syslogd" ];
 
       type.service.command = lib.strings.concatStringsSep " " (
         [

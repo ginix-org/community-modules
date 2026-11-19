@@ -23,7 +23,12 @@ in
 
     providers.services.units.amnezia-vpn = {
       description = "AmneziaVPN daemon";
-      requires = [ "basic" ];
+      # it is driven over the system bus, and sets the resolver through resolvconf
+      requires = [
+        "dbus"
+        "resolvconf"
+      ]
+      ++ config.providers.services.lib.present [ "syslogd" ];
 
       type.service.command = "${cfg.package}/bin/AmneziaVPN-service";
 

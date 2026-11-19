@@ -198,9 +198,11 @@ in
     providers.services.units.cups = {
       description = "CUPS printing daemon";
 
-      # was `service/syslogd/ready`: syslogd is in the head tier, so reaching
-      # the multi-user tier is already after it.
-      requires = [ "basic" ];
+      # its spool and state directories, which are tmpfiles rules below, and the logger
+      requires = [
+        "tmpfiles-setup"
+      ]
+      ++ config.providers.services.lib.present [ "syslogd" ];
 
       type.service.command = "${cfg.package.out}/sbin/cupsd -f -c /etc/cups/cupsd.conf -s ${format.generate "cups-files.conf" cfg.settings}";
     };

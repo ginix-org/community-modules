@@ -197,10 +197,10 @@ in
     # finix supports and tests three ways, none of this was assembled. No script, no stanza, no
     # bind mounts: `preservation.enable = true` evaluated cleanly and preserved nothing.
     #
-    # The same commands run against the already-mounted root as a unit at the head of the
-    # trunk: after `mount-filesystems`, because the preserved root has to be mounted first,
-    # and named on `start` so the `sysinit` anchor waits for it and everything attached to any
-    # later level is behind it.
+    # The same commands run against the already-mounted root as a unit, after
+    # `mount-filesystems` because the preserved root has to be mounted first. Nothing else is
+    # behind it unless it says so: a unit which reads or writes preserved state names the
+    # entry's unit in its `requires`.
     assertions = lib.optionals config.boot.initrd.enable (
       map (entry: {
         assertion = conditionsFor entry.stateConfig != "";
@@ -237,10 +237,7 @@ in
           lib.nameValuePair entry.unit {
             description = "mount preserved state on ${entry.stateConfig.persistentStoragePath}";
 
-            requires = [
-              "start"
-              "mount-filesystems"
-            ];
+            requires = [ "mount-filesystems" ];
 
             type.oneshot.command = toString (mkScript "stage2" entry);
           }

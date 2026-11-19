@@ -142,9 +142,8 @@ in
     providers.services.units.xinetd = {
       description = "xinetd server";
 
-      # was `services/syslogd/ready` plus runlevels 34: syslogd is in the head
-      # tier, so the multi-user tier covers both.
-      requires = [ "basic" ];
+      # it logs through syslog (`-syslog daemon`)
+      requires = config.providers.services.lib.present [ "syslogd" ];
 
       path = [ pkgs.xinetd ];
 

@@ -68,9 +68,12 @@ in
     providers.services.units.openrgb = {
       description = "OpenRGB SDK Server";
 
-      # was `service/syslogd/ready`: syslogd is in the head tier, so reaching
-      # the multi-user tier is already after it.
-      requires = [ "basic" ];
+      # the logger, and the device manager's settle: it scans the i2c and USB controllers once
+      # at startup, so a controller whose node or permissions are still to come is not found.
+      requires = config.providers.services.lib.present [
+        "syslogd"
+        "devices-settled"
+      ];
 
       type.service.command = lib.escapeShellArgs (
         [

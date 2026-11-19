@@ -55,34 +55,29 @@ in
 {
   config = lib.mkIf cfg.enable (
     lib.mkMerge [
-      # the system service: its own account, the wrapper for CAP_SYS_NICE, and a tier early
-      # enough that everything which makes sound is behind it
+      # the system service: its own account and the wrapper for CAP_SYS_NICE
       (lib.mkIf (cfg.session == null) {
         providers.services.units.speakersafetyd = {
           description = "speaker protection daemon";
 
-          # A level earlier makes the ordering structural rather than a named edge each audio
-          # consumer has to remember. `multi-user` is not reached until this is started, so
-          # everything attached to it - a display manager, a session, and therefore every user
-          # tree - is after it.
+          # The wrapper it execs, the logger its stderr goes to, and the device manager's settle:
+          # it opens the sound card's controls once at startup, so the card has to be there.
           #
-          # "Started" and not "ready", and the difference is a real window. A unit's readiness
-          # defaults to `fork`, so finit asserts this one the instant the process exists, and
-          # `basic` is satisfied while the daemon is still working out what it is protecting.
-          # The session comes up underneath it. It cannot be closed from here either:
-          # speakersafetyd has no readiness protocol - Type=simple, no sd_notify, and the one
-          # file it creates is a cold-boot marker written seconds before anything can go wrong.
+          # Nothing is behind this unless it says so. There are no levels for it to sit early
+          # in, so a display manager or a session is not ordered after it by being later - only
+          # by naming it. Even named, it would be "started" rather than "ready": speakersafetyd
+          # has no readiness protocol - Type=simple, no sd_notify, and the one file it creates is
+          # a cold-boot marker written seconds before anything can go wrong.
           #
           # What goes wrong is the sound server opening the card while this is reading its
           # sample rate, which is a panic and a restart. `session` is the way out of that, and
           # the reason it exists: beside the sound server, the edge can simply be written.
-          #
-          # The cost of this tier is that a machine which cannot protect its speakers does not
-          # reach `multi-user`, so a failure here takes the graphical session with it rather
-          # than leaving it silent. On hardware that needs this that is the right way round.
           requires = [
-            "basic"
             "suid-sgid-wrappers"
+          ]
+          ++ config.providers.services.lib.present [
+            "syslogd"
+            "devices-settled"
           ];
 
           # The wrapper, not the binary, so the process gets CAP_SYS_NICE. See the capability

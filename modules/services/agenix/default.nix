@@ -281,20 +281,17 @@ in
     providers.services.units.agenix-install-secrets = {
       description = "decrypt agenix secrets into ${cfg.secretsDir}";
 
-      # The sysinit tier: secrets exist before anything that might read them,
-      # and accounts already exist because finix creates them in
-      # `system.activation.scripts.users`, which runs before any unit starts —
-      # so the chowns have users to name. A service needing a secret should
-      # require this unit directly rather than lean on the tier.
+      # Nothing waits for this unless it says so: a service needing a secret requires this unit
+      # by name. Accounts already exist, because finix creates them in
+      # `system.activation.scripts.users`, which runs before any unit starts - so the chowns
+      # have users to name.
       #
-      # `ssh-keygen` as well, where there is one, because the identity this decrypts with is the
-      # machine's ssh host key - see the note on `identityPaths` above. Both units attach to the
-      # same tier, and a tier starts together, so without this edge the two race. It is not a
-      # theoretical race: on a first boot there is no key yet, and losing means exiting 1, which
-      # leaves this unit's readiness companion waiting for a success that never comes and stalls
-      # `sysinit` with the entire trunk behind it.
+      # The filesystems, because the identities this decrypts with live on them. `ssh-keygen` as
+      # well, where there is one, because the identity is usually the machine's ssh host key -
+      # see the note on `identityPaths` above. On a first boot there is no key yet, and starting
+      # first means exiting 1, which fails everything that requires a secret.
       requires = [
-        "sysinit"
+        "mount-filesystems"
       ]
       ++ lib.optional (config.services.openssh.enable or false) "ssh-keygen";
 
